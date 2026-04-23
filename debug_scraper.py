@@ -10,7 +10,7 @@ async def main():
             locale="zh-TW",
         )
         page = await ctx.new_page()
-        url = "https://www.8591.com.tw/rent/list?kind=1&region=01&page=1"
+        url = "https://rent.591.com.tw/list?kind=1&region=1&page=1"
         print(f"[debug] opening {url}")
         await page.goto(url, wait_until="domcontentloaded", timeout=30000)
         await page.wait_for_timeout(3000)

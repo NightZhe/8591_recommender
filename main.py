@@ -38,14 +38,14 @@ async def run_scheduler():
 
 
 async def main():
-    parser = argparse.ArgumentParser(description="8591 房源推薦系統")
+    parser = argparse.ArgumentParser(description="591 房源推薦系統")
     subparsers = parser.add_subparsers(dest="command")
 
     subparsers.add_parser("start", help="啟動排程器（每天自動執行）")
     subparsers.add_parser("run", help="立刻執行一次爬取+推薦")
 
     view_parser = subparsers.add_parser("view", help="記錄瀏覽某物件")
-    view_parser.add_argument("property_id", help="8591 物件 ID")
+    view_parser.add_argument("property_id", help="591 物件 ID")
 
     args = parser.parse_args()
 

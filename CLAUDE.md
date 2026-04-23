@@ -24,7 +24,7 @@ python main.py run
 # Start the scheduler (runs daily at 09:00)
 python main.py start
 
-# Record a manually viewed property (by 8591 numeric ID)
+# Record a manually viewed property (by 591 numeric ID)
 python main.py view <property_id>
 
 # Debug scraper — saves raw HTML to debug_page.html and probes CSS selectors
@@ -57,7 +57,7 @@ All tunable settings live in `config/settings.py`, sourced from `.env`:
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `DATABASE_URL` | `sqlite:///8591.db` | SQLAlchemy DB URL |
+| `DATABASE_URL` | `sqlite:///591.db` | SQLAlchemy DB URL |
 | `LINE_NOTIFY_TOKEN` | — | Required for notifications |
 | `MAX_PAGES_PER_SEARCH` | `5` | Pages fetched per scrape run |
 | `TOP_N_RECOMMENDATIONS` | `10` | Max recommendations sent |
@@ -71,4 +71,4 @@ Search parameters (region, price range, area range) are in `DEFAULT_SEARCH_PARAM
 - The DB session is never passed across module boundaries — each module calls `get_db()` directly.
 - `Property.features` stores the raw label list as a Python `str(list)` (not JSON), so parsing it back requires `ast.literal_eval`.
 - When the user has no view history, `compute_recommendations` falls back to returning the most recently scraped properties (score=1.0, reason="最新上架").
-- `debug_scraper.py` targets `www.8591.com.tw` (wrong domain) while the real scraper targets `rent.591.com.tw` — this discrepancy is intentional for debugging the alternative domain.
+- `debug_scraper.py` targets `rent.591.com.tw` (same as the real scraper), saves raw HTML to `debug_page.html`, and probes a list of CSS selectors — useful when the site structure changes and `.recommend-ware` stops matching.
