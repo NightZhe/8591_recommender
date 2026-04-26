@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>591 買屋追蹤 — 店面</title>
+  <style>
+    :root {
+      --primary:  #e05c1a;
+      --bg:       #f5f5f5;
+      --card-bg:  #ffffff;
+      --border:   #e0e0e0;
+      --text:     #333;
+      --muted:    #888;
+      --new-bg:   #fff8e1;
+      --new-border:#f59e0b;
+      --success:  #16a34a;
+      --fail:     #dc2626;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ── header ── */
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.18);
+    }
+    header h1 { font-size: 1.25rem; font-weight: 700; }
+    header .subtitle { font-size: .85rem; opacity: .85; }
+    .badge-new {
+      margin-left: auto;
+      background: #f59e0b;
+      color: #fff;
+      font-size: .8rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      animation: pulse 1.5s infinite;
+      display: none;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+    /* ── tabs ── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      background: #fff;
+      border-bottom: 2px solid var(--border);
+      padding: 0 24px;
+    }
+    .tab-btn {
+      padding: 14px 20px;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: var(--muted);
+      transition: all .2s;
+    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+
+    /* ── content ── */
+    .tab-panel { display: none; padding: 20px 24px; }
+    .tab-panel.active { display: block; }
+
+    /* ── status bar ── */
+    .status-bar {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin-bottom: 16px;
+      font-size: .85rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .status-bar .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--success); display: inline-block;
+    }
+    .status-bar .dot.fail { background: var(--fail); }
+    .status-bar .dot.running { background: #f59e0b; animation: pulse 1s infinite; }
+
+    /* ── property grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      transition: box-shadow .2s;
+      position: relative;
+    }
+    .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+    .card.is-new { border-color: var(--new-border); background: var(--new-bg); }
+
+    .new-tag {
+      position: absolute; top: 8px; left: 8px;
+      background: var(--new-border);
+      color: #fff; font-size: .72rem; font-weight: 700;
+      padding: 2px 8px; border-radius: 4px;
+    }
+
+    .card-img {
+      width: 100%; height: 160px; object-fit: cover;
+      background: #eee;
+      display: block;
+    }
+    .card-img-placeholder {
+      width: 100%; height: 160px;
+      background: linear-gradient(135deg, #e8e8e8, #d0d0d0);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem; color: #bbb;
+    }
+
+    .card-body { padding: 12px; }
+    .card-title {
+      font-size: .92rem; font-weight: 600;
+      line-height: 1.4; margin-bottom: 6px;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-title a { color: var(--text); text-decoration: none; }
+    .card-title a:hover { color: var(--primary); }
+
+    .card-price {
+      font-size: 1.15rem; font-weight: 700;
+      color: var(--primary); margin-bottom: 6px;
+    }
+    .card-price span { font-size: .8rem; color: var(--muted); font-weight: 400; }
+
+    .card-meta {
+      font-size: .8rem; color: var(--muted);
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .card-meta .tag {
+      background: #f0f0f0; border-radius: 4px;
+      padding: 2px 7px;
+    }
+    .card-meta .tag.district { background: #e8f4fd; color: #1d6fa4; }
+
+    .card-addr {
+      font-size: .78rem; color: var(--muted);
+      margin-top: 6px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* ── history list ── */
+    .history-list { display: flex; flex-direction: column; gap: 10px; }
+    .run-row {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: box-shadow .2s;
+    }
+    .run-row:hover { box-shadow: 0 2px 10px rgba(0,0,0,.1); }
+    .run-row.selected { border-color: var(--primary); }
+
+    .run-time { font-size: .9rem; font-weight: 600; min-width: 130px; }
+    .run-stats { font-size: .83rem; color: var(--muted); flex: 1; }
+    .run-badge {
+      font-size: .75rem; font-weight: 700; padding: 2px 8px;
+      border-radius: 999px; white-space: nowrap;
+    }
+    .run-badge.success { background: #d1fae5; color: var(--success); }
+    .run-badge.failed  { background: #fee2e2; color: var(--fail); }
+    .run-badge.running { background: #fef3c7; color: #b45309; }
+    .new-pill {
+      background: var(--new-border); color: #fff;
+      font-size: .75rem; font-weight: 700;
+      padding: 2px 8px; border-radius: 999px;
+    }
+
+    .history-detail { margin-top: 20px; }
+    .history-detail h3 {
+      font-size: 1rem; font-weight: 700; margin-bottom: 12px;
+      color: var(--text);
+    }
+
+    /* ── empty / loading ── */
+    .empty {
+      text-align: center; padding: 60px 20px;
+      color: var(--muted); font-size: 1rem;
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 4px solid #eee; border-top-color: var(--primary);
+      border-radius: 50%; animation: spin .8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .refresh-btn {
+      background: none; border: 1px solid var(--border);
+      border-radius: 6px; padding: 5px 12px; cursor: pointer;
+      font-size: .82rem; color: var(--muted); margin-left: auto;
+      transition: all .15s;
+    }
+    .refresh-btn:hover { background: var(--bg); color: var(--text); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🏪 591 買屋追蹤</h1>
+    <div class="subtitle">板橋（江翠北）・五股 ｜ 一樓店面 ｜ 20-40坪 ｜ 3000萬以內</div>
+  </div>
+  <div class="badge-new" id="newBadge">🔔 有新物件！</div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('latest')">🏠 最新物件</button>
+  <button class="tab-btn" onclick="showTab('history')">📅 歷史紀錄</button>
+</div>
+
+<!-- ══ 最新物件 tab ══ -->
+<div class="tab-panel active" id="tab-latest">
+  <div class="status-bar" id="latestStatus">
+    <div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0"></div>
+    載入中…
+  </div>
+  <div class="grid" id="latestGrid"></div>
+</div>
+
+<!-- ══ 歷史紀錄 tab ══ -->
+<div class="tab-panel" id="tab-history">
+  <div class="status-bar" style="justify-content:space-between">
+    <span>每晚 22:00 自動更新</span>
+    <button class="refresh-btn" onclick="loadHistory()">↻ 重新整理</button>
+  </div>
+  <div class="history-list" id="historyList"></div>
+  <div class="history-detail" id="historyDetail" style="display:none">
+    <h3 id="historyDetailTitle"></h3>
+    <div class="grid" id="historyGrid"></div>
+  </div>
+</div>
+
+<script>
+// ── tab 切換 ──────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'history') loadHistory();
+}
+
+// ── 物件卡片 ─────────────────────────────────
+function makeCard(p) {
+  const price = p.price ? `${p.price.toLocaleString()} 萬` : '詢價';
+  const unit  = p.unit_price ? `（${p.unit_price} 萬/坪）` : '';
+  const area  = p.area ? `${p.area} 坪` : '';
+  const floor = p.floor ? p.floor : '';
+  const img   = p.image_url
+    ? `<img class="card-img" src="${p.image_url}" alt="" loading="lazy" onerror="this.style.display='none'">`
+    : `<div class="card-img-placeholder">🏪</div>`;
+
+  return `
+  <div class="card ${p.is_new ? 'is-new' : ''}">
+    ${p.is_new ? '<span class="new-tag">NEW</span>' : ''}
+    <a href="${p.url}" target="_blank" rel="noopener">${img}</a>
+    <div class="card-body">
+      <div class="card-title"><a href="${p.url}" target="_blank" rel="noopener">${p.title || '（無標題）'}</a></div>
+      <div class="card-price">${price}<span> ${unit}</span></div>
+      <div class="card-meta">
+        ${p.district ? `<span class="tag district">${p.district}</span>` : ''}
+        ${area ? `<span class="tag">${area}</span>` : ''}
+        ${floor ? `<span class="tag">${floor}</span>` : ''}
+        ${p.house_type ? `<span class="tag">${p.house_type}</span>` : ''}
+      </div>
+      ${p.address ? `<div class="card-addr">📍 ${p.address}</div>` : ''}
+      <div class="card-meta" style="margin-top:6px">
+        <span>首次出現：${p.first_seen}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── 最新物件 ──────────────────────────────────
+async function loadLatest() {
+  const status = document.getElementById('latestStatus');
+  const grid   = document.getElementById('latestGrid');
+
+  status.innerHTML = `<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0"></div> 載入中…`;
+  grid.innerHTML = '';
+
+  try {
+    const res  = await fetch('/api/latest');
+    const data = await res.json();
+
+    if (!data.run) {
+      status.innerHTML = '<span class="dot fail"></span> 尚無資料（排程尚未執行）';
+      grid.innerHTML = `<div class="empty">暫無物件資料<br><small>等待每晚 22:00 自動爬取</small></div>`;
+      return;
+    }
+
+    const r = data.run;
+    const statusDot = r.status === 'success' ? 'dot' : r.status === 'failed' ? 'dot fail' : 'dot running';
+    status.innerHTML = `
+      <span class="${statusDot}"></span>
+      最後更新：<strong>${r.run_at}</strong>
+      ｜ 共 ${r.total_found} 筆
+      ｜ 新物件 <strong>${r.new_count}</strong> 筆
+      <button class="refresh-btn" onclick="loadLatest()">↻ 重新整理</button>
+    `;
+
+    if (data.has_new) {
+      document.getElementById('newBadge').style.display = 'block';
+    }
+
+    if (!data.properties.length) {
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1">此次無符合條件的物件</div>`;
+      return;
+    }
+
+    grid.innerHTML = data.properties.map(makeCard).join('');
+  } catch (e) {
+    status.innerHTML = `<span class="dot fail"></span> 載入失敗：${e.message}`;
+  }
+}
+
+// ── 歷史紀錄 ──────────────────────────────────
+let selectedRunId = null;
+
+async function loadHistory() {
+  const list = document.getElementById('historyList');
+  list.innerHTML = `<div class="empty"><div class="spinner"></div>載入中…</div>`;
+  document.getElementById('historyDetail').style.display = 'none';
+
+  try {
+    const res  = await fetch('/api/history');
+    const runs = await res.json();
+
+    if (!runs.length) {
+      list.innerHTML = `<div class="empty">尚無歷史紀錄</div>`;
+      return;
+    }
+
+    list.innerHTML = runs.map(r => {
+      const badgeClass = r.status === 'success' ? 'success' : r.status === 'failed' ? 'failed' : 'running';
+      const newPill = r.new_count > 0 ? `<span class="new-pill">+${r.new_count} 新</span>` : '';
+      return `
+        <div class="run-row ${r.id === selectedRunId ? 'selected' : ''}" onclick="loadHistoryDetail(${r.id}, '${r.run_at}')">
+          <div class="run-time">${r.run_at}</div>
+          <div class="run-stats">${r.search_areas} ｜ 共 ${r.total_found} 筆</div>
+          ${newPill}
+          <span class="run-badge ${badgeClass}">${r.status === 'success' ? '✓ 成功' : r.status === 'failed' ? '✗ 失敗' : '⟳ 執行中'}</span>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="empty">載入失敗：${e.message}</div>`;
+  }
+}
+
+async function loadHistoryDetail(runId, runAt) {
+  selectedRunId = runId;
+  // 更新選中樣式
+  document.querySelectorAll('.run-row').forEach(el => el.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+
+  const detail = document.getElementById('historyDetail');
+  const title  = document.getElementById('historyDetailTitle');
+  const grid   = document.getElementById('historyGrid');
+
+  detail.style.display = 'block';
+  title.textContent = `📋 ${runAt} 的爬取結果`;
+  grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="spinner"></div>載入中…</div>`;
+
+  try {
+    const res  = await fetch(`/api/history/${runId}`);
+    const data = await res.json();
+
+    if (!data.properties || !data.properties.length) {
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1">此次無物件記錄</div>`;
+      return;
+    }
+    grid.innerHTML = data.properties.map(makeCard).join('');
+  } catch (e) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">載入失敗：${e.message}</div>`;
+  }
+
+  // 捲動到結果
+  detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── 自動每 5 分鐘重整最新 tab ─────────────────
+loadLatest();
+setInterval(() => {
+  if (document.getElementById('tab-latest').classList.contains('active')) {
+    loadLatest();
+  }
+}, 5 * 60 * 1000);
+</script>
+</body>
+</html>
