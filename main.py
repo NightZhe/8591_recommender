@@ -1,11 +1,14 @@
 import asyncio
 import argparse
 import threading
+import os
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database.db import init_db
 from database.models import ViewLog
 from database.db import get_db
 from scheduler.daily_job import run_daily_job
+
+_DEFAULT_PORT = int(os.environ.get("PORT", 5591))
 
 
 def add_view_log(property_id: str):
@@ -56,7 +59,7 @@ async def main():
 
     # start：啟動排程器 + 網頁
     sp_start = subparsers.add_parser("start", help="啟動排程器 + 網頁伺服器（每天 22:00 自動執行）")
-    sp_start.add_argument("--port", type=int, default=5591, help="網頁端口（預設 5591）")
+    sp_start.add_argument("--port", type=int, default=_DEFAULT_PORT, help="網頁端口（預設讀 PORT 環境變數）")
     sp_start.add_argument("--no-web", action="store_true", help="不啟動網頁伺服器")
 
     # run：立刻執行一次爬取
@@ -64,7 +67,7 @@ async def main():
 
     # web：只啟動網頁伺服器
     sp_web = subparsers.add_parser("web", help="只啟動網頁伺服器（不排程）")
-    sp_web.add_argument("--port", type=int, default=5591, help="端口（預設 5591）")
+    sp_web.add_argument("--port", type=int, default=_DEFAULT_PORT, help="端口（預設讀 PORT 環境變數）")
 
     # view：記錄瀏覽
     view_parser = subparsers.add_parser("view", help="記錄瀏覽某物件")
