@@ -218,6 +218,15 @@
       transition: all .15s;
     }
     .refresh-btn:hover { background: var(--bg); color: var(--text); }
+
+    .fetch-btn {
+      background: #fff; border: none;
+      border-radius: 6px; padding: 7px 14px; cursor: pointer;
+      font-size: .85rem; font-weight: 600; color: var(--primary);
+      transition: all .15s; white-space: nowrap;
+    }
+    .fetch-btn:hover:not(:disabled) { background: #ffe8dc; }
+    .fetch-btn:disabled { opacity: .6; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -228,6 +237,7 @@
     <div class="subtitle">板橋（江翠北）・五股 ｜ 一樓店面 ｜ 20-40坪 ｜ 3000萬以內</div>
   </div>
   <div class="badge-new" id="newBadge">🔔 有新物件！</div>
+  <button class="fetch-btn" id="fetchBtn" onclick="triggerScrape()">⟳ 獲取最新資訊</button>
 </header>
 
 <div class="tabs">
@@ -403,6 +413,71 @@ async function loadHistoryDetail(runId, runAt) {
 
   // 捲動到結果
   detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── 觸發爬蟲 ──────────────────────────────────
+let _pollTimer = null;
+
+async function triggerScrape() {
+  const btn = document.getElementById('fetchBtn');
+  btn.disabled = true;
+  btn.textContent = '⟳ 爬取中…';
+
+  try {
+    const res = await fetch('/api/trigger-scrape', { method: 'POST' });
+    if (res.status === 409) {
+      btn.textContent = '⟳ 已在執行中';
+    } else if (res.ok) {
+      _pollResult();
+      return;
+    } else {
+      btn.textContent = '✗ 發生錯誤';
+    }
+  } catch (e) {
+    btn.textContent = '✗ 連線失敗';
+  }
+
+  setTimeout(() => { btn.disabled = false; btn.textContent = '⟳ 獲取最新資訊'; }, 3000);
+}
+
+async function _pollResult() {
+  const btn = document.getElementById('fetchBtn');
+  let prevTotal = null;
+
+  // 先取目前 total
+  try {
+    const s = await fetch('/api/status');
+    const d = await s.json();
+    prevTotal = d.total_properties;
+  } catch (_) {}
+
+  clearInterval(_pollTimer);
+  _pollTimer = setInterval(async () => {
+    try {
+      const s = await fetch('/api/status');
+      const d = await s.json();
+      const run = d.latest_run;
+
+      // 爬完的判斷：有 latest_run 且 status 不是 running，且總數有變
+      if (run && run.status !== 'running' && d.total_properties !== prevTotal) {
+        clearInterval(_pollTimer);
+        btn.disabled = false;
+        btn.textContent = `✓ 完成 (+${run.new_count} 筆)`;
+        setTimeout(() => { btn.textContent = '⟳ 獲取最新資訊'; }, 4000);
+        loadLatest();
+      }
+    } catch (_) {}
+  }, 5000);
+
+  // 最多等 10 分鐘
+  setTimeout(() => {
+    clearInterval(_pollTimer);
+    if (btn.disabled) {
+      btn.disabled = false;
+      btn.textContent = '⟳ 獲取最新資訊';
+      loadLatest();
+    }
+  }, 10 * 60 * 1000);
 }
 
 // ── 自動每 5 分鐘重整最新 tab ─────────────────
