@@ -2,9 +2,11 @@
 Flask web 伺服器：提供買屋物件儀表板
 端口：5591
 """
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, request
 from datetime import datetime, timezone
 import os
+import asyncio
+import threading
 
 from database.db import get_db
 from database.models import BuyProperty, ScrapeRun
@@ -141,6 +143,29 @@ def api_status():
             "total_properties": total,
             "latest_run": _run_dict(latest) if latest else None,
         })
+
+
+_scrape_running = False
+
+@app.route("/api/trigger-scrape", methods=["POST"])
+def trigger_scrape():
+    """手動觸發一次爬蟲（背景執行）"""
+    global _scrape_running
+    if _scrape_running:
+        return jsonify({"status": "already_running"}), 409
+
+    def _run():
+        global _scrape_running
+        _scrape_running = True
+        try:
+            from scheduler.daily_job import run_daily_job
+            asyncio.run(run_daily_job())
+        finally:
+            _scrape_running = False
+
+    t = threading.Thread(target=_run, daemon=True)
+    t.start()
+    return jsonify({"status": "started"}), 202
 
 
 def run_web(host: str = "0.0.0.0", port: int = 5591, debug: bool = False):
