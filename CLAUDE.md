@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Python-based property recommendation system that scrapes rental listings from 591.com.tw (rent.591.com.tw), stores them in a local SQLite database, and sends personalized daily recommendations via LINE Notify based on the user's view history.
 
+## Production
+
+**Railway 部署網址：** https://8591recommender-production.up.railway.app/
+
 ## Setup
 
 ```bash
