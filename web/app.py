@@ -1,8 +1,8 @@
 """
-Flask web 伺服器：提供租屋推薦儀表板
+Flask web 伺服器：提供房產搜尋儀表板（租屋 / 買屋住宅 / 買屋商辦）
 端口：由 PORT 環境變數決定（預設 5591）
 """
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory, request
 from datetime import datetime, timezone, timedelta
 import asyncio
 import threading
@@ -33,7 +33,14 @@ def _run_dict(r: ScrapeRun) -> dict:
         "search_areas": r.search_areas or "",
         "status":       r.status or "unknown",
         "error_msg":    r.error_msg,
+        "mode":         r.error_msg and "unknown" or _infer_mode(r.search_areas or ""),
     }
+
+
+def _infer_mode(search_areas: str) -> str:
+    if "買屋" in search_areas or "店面" in search_areas or "商辦" in search_areas:
+        return "buy"
+    return "rent"
 
 
 def _rec_dict(rec: Recommendation, prop: Property) -> dict:
@@ -75,7 +82,7 @@ def api_latest():
                       .first())
 
         if not latest_run:
-            return jsonify({"run": None, "properties": [], "has_new": False})
+            return jsonify({"run": None, "properties": [], "has_new": False, "mode": "rent"})
 
         recs = (db.query(Recommendation)
                 .filter(Recommendation.recommended_at >= latest_run.run_at)
@@ -116,10 +123,12 @@ def api_latest():
                 "is_new":        True,
             } for p in props]
 
+        run_info = _run_dict(latest_run)
         return jsonify({
-            "run":        _run_dict(latest_run),
+            "run":        run_info,
             "properties": results,
             "has_new":    len(results) > 0,
+            "mode":       run_info["mode"],
         })
 
 
@@ -154,7 +163,8 @@ def api_history_detail(run_id: int):
             if prop:
                 results.append(_rec_dict(rec, prop))
 
-        return jsonify({"run": _run_dict(run), "properties": results})
+        run_info = _run_dict(run)
+        return jsonify({"run": run_info, "properties": results, "mode": run_info["mode"]})
 
 
 @app.route("/api/last-error")
@@ -189,23 +199,30 @@ _scrape_running = False
 
 @app.route("/api/trigger-scrape", methods=["POST"])
 def trigger_scrape():
-    """手動觸發一次爬蟲（背景執行）"""
+    """手動觸發一次爬蟲（背景執行）
+    Body JSON: { mode: "rent"|"buy_residential"|"buy_commercial", price_min, price_max }
+    """
     global _scrape_running
     if _scrape_running:
         return jsonify({"status": "already_running"}), 409
+
+    body      = request.get_json(silent=True) or {}
+    mode      = body.get("mode", "rent")
+    price_min = int(body.get("price_min", 0))
+    price_max = int(body.get("price_max", 0))
 
     def _run():
         global _scrape_running
         _scrape_running = True
         try:
-            from scheduler.daily_job import run_daily_job
-            asyncio.run(run_daily_job())
+            from scheduler.daily_job import run_job_with_params
+            asyncio.run(run_job_with_params(mode, price_min, price_max))
         finally:
             _scrape_running = False
 
     t = threading.Thread(target=_run, daemon=True)
     t.start()
-    return jsonify({"status": "started"}), 202
+    return jsonify({"status": "started", "mode": mode}), 202
 
 
 def run_web(host: str = "0.0.0.0", port: int = 5591, debug: bool = False):
