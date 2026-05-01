@@ -37,12 +37,12 @@ async def run_scheduler(port: int = 5591, no_web: bool = False):
     scheduler.add_job(
         run_daily_job,
         trigger="cron",
-        hour=22,
+        hour=9,
         minute=0,
-        id="daily_buy_scrape",
+        id="daily_rent_scrape",
     )
     scheduler.start()
-    print("[main] 排程器已啟動，每天 22:00 爬取買屋物件")
+    print("[main] 排程器已啟動，每天 09:00 爬取租屋物件")
     print("[main] Ctrl+C 停止")
 
     try:

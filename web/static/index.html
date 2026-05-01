@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>591 買屋追蹤 — 店面</title>
+  <title>591 租屋推薦</title>
   <style>
     :root {
       --primary:  #e05c1a;
@@ -233,8 +233,8 @@
 
 <header>
   <div>
-    <h1>🏪 591 買屋追蹤</h1>
-    <div class="subtitle">板橋（江翠北）・五股 ｜ 一樓店面 ｜ 20-40坪 ｜ 3000萬以內</div>
+    <h1>🏠 591 租屋推薦</h1>
+    <div class="subtitle">台北市 ｜ 20,000–32,000 元/月 ｜ 10-25坪 ｜ 大安・信義・松山・中山</div>
   </div>
   <div class="badge-new" id="newBadge">🔔 有新物件！</div>
   <button class="fetch-btn" id="fetchBtn" onclick="triggerScrape()">⟳ 獲取最新資訊</button>
@@ -279,31 +279,37 @@ function showTab(name) {
 
 // ── 物件卡片 ─────────────────────────────────
 function makeCard(p) {
-  const price = p.price ? `${p.price.toLocaleString()} 萬` : '詢價';
-  const unit  = p.unit_price ? `（${p.unit_price} 萬/坪）` : '';
-  const area  = p.area ? `${p.area} 坪` : '';
-  const floor = p.floor ? p.floor : '';
-  const img   = p.image_url
+  const price = p.price ? `${p.price.toLocaleString()} 元/月` : '詢價';
+  const area  = p.area  ? `${p.area} 坪` : '';
+  const floor = p.floor ? `${p.floor}樓` : '';
+  const rooms = (p.rooms != null)
+    ? `${p.rooms}房${p.living_rooms||0}廳${p.bathrooms||0}衛` : '';
+  const img = p.image_url
     ? `<img class="card-img" src="${p.image_url}" alt="" loading="lazy" onerror="this.style.display='none'">`
-    : `<div class="card-img-placeholder">🏪</div>`;
+    : `<div class="card-img-placeholder">🏠</div>`;
+  const scorePct = p.score != null ? Math.round(p.score * 100) : null;
+  const scoreBar = scorePct != null
+    ? `<div style="margin-top:6px;font-size:.8rem;color:#888;">
+         <span style="display:inline-block;width:48px;height:5px;background:#eee;border-radius:3px;vertical-align:middle;margin-right:4px;overflow:hidden;">
+           <span style="display:block;height:100%;width:${scorePct}%;background:var(--primary);border-radius:3px;"></span>
+         </span>符合度 ${scorePct}%　✨ ${p.reason}
+       </div>` : (p.reason ? `<div style="margin-top:6px;font-size:.8rem;color:#888;">✨ ${p.reason}</div>` : '');
 
   return `
-  <div class="card ${p.is_new ? 'is-new' : ''}">
-    ${p.is_new ? '<span class="new-tag">NEW</span>' : ''}
+  <div class="card">
     <a href="${p.url}" target="_blank" rel="noopener">${img}</a>
     <div class="card-body">
       <div class="card-title"><a href="${p.url}" target="_blank" rel="noopener">${p.title || '（無標題）'}</a></div>
-      <div class="card-price">${price}<span> ${unit}</span></div>
+      <div class="card-price">${price}</div>
       <div class="card-meta">
         ${p.district ? `<span class="tag district">${p.district}</span>` : ''}
-        ${area ? `<span class="tag">${area}</span>` : ''}
+        ${area  ? `<span class="tag">${area}</span>`  : ''}
         ${floor ? `<span class="tag">${floor}</span>` : ''}
-        ${p.house_type ? `<span class="tag">${p.house_type}</span>` : ''}
+        ${rooms ? `<span class="tag">${rooms}</span>` : ''}
+        ${p.property_type ? `<span class="tag">${p.property_type}</span>` : ''}
       </div>
       ${p.address ? `<div class="card-addr">📍 ${p.address}</div>` : ''}
-      <div class="card-meta" style="margin-top:6px">
-        <span>首次出現：${p.first_seen}</span>
-      </div>
+      ${scoreBar}
     </div>
   </div>`;
 }
