@@ -13,11 +13,12 @@ TOP_N_RECOMMENDATIONS = int(os.getenv("TOP_N_RECOMMENDATIONS", "10"))
 SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.3"))
 
 # 591 搜尋條件設定（可依需求調整）
+# 曾先生需求：台北市，套房/獨立套房，租金 20,000–32,000，坪數 10–25 坪
 DEFAULT_SEARCH_PARAMS = {
-    "kind": "1",        # 1=出租, 2=出售
-    "region": "1",      # 1=台北市, 3=新北市, 5=高雄市
-    "price_min": 0,
-    "price_max": 0,     # 0=不限
-    "area_min": 0,
-    "area_max": 0,
+    "kind": "1",         # 1=出租
+    "region": "1",       # 1=台北市
+    "price_min": 20000,
+    "price_max": 32000,
+    "area_min": 10,
+    "area_max": 25,
 }
