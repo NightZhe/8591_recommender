@@ -1,6 +1,5 @@
 import httpx
 from config.settings import LINE_NOTIFY_TOKEN
-from database.models import Property
 
 LINE_NOTIFY_URL = "https://notify-api.line.me/api/notify"
 
@@ -22,23 +21,28 @@ def send_line_notify(message: str, image_url: str = None):
     return resp.status_code == 200
 
 
-def format_property_message(prop: Property, score: float, reason: str, rank: int) -> str:
-    price_str = f"{prop.price:,.0f}" if prop.price else "未提供"
-    area_str = f"{prop.area:.1f} 坪" if prop.area else "未提供"
-    floor_str = prop.floor or "未知"
+def format_property_message(prop: dict, score: float, reason: str, rank: int) -> str:
+    price = prop.get("price")
+    area = prop.get("area")
+    price_str = f"{price:,.0f}" if price else "未提供"
+    area_str = f"{area:.1f} 坪" if area else "未提供"
+    floor_str = prop.get("floor") or "未知"
 
     room_str = ""
-    if prop.rooms is not None:
-        room_str = f"{prop.rooms}房{prop.living_rooms or 0}廳{prop.bathrooms or 0}衛"
+    rooms = prop.get("rooms")
+    if rooms is not None:
+        room_str = f"{rooms}房{prop.get('living_rooms') or 0}廳{prop.get('bathrooms') or 0}衛"
+
+    location = prop.get("address") or prop.get("district") or prop.get("region", "")
 
     return f"""
 #{rank} 推薦房源（符合度 {score:.0%}）
-📍 {prop.address or prop.district or prop.region}
-🏠 {prop.property_type or '住宅'} {room_str}
+📍 {location}
+🏠 {prop.get('property_type') or '住宅'} {room_str}
 💰 {price_str} 元/月
 📐 {area_str}  🏢 {floor_str}樓
 ✨ {reason}
-🔗 {prop.url}
+🔗 {prop.get('url', '')}
 """
 
 
@@ -55,4 +59,4 @@ def send_daily_recommendations(recommendations: list[dict]):
         msg = format_property_message(
             item["property"], item["score"], item["reason"], i
         )
-        send_line_notify(msg, image_url=item["property"].image_url or None)
+        send_line_notify(msg, image_url=item["property"]["image_url"] or None)

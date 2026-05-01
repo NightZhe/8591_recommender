@@ -17,6 +17,8 @@ def _prop_to_dict(prop: Property) -> dict:
         "district": prop.district,
         "address": prop.address,
         "rooms": prop.rooms,
+        "living_rooms": prop.living_rooms,
+        "bathrooms": prop.bathrooms,
         "property_type": prop.property_type,
         "floor": prop.floor,
         "image_url": prop.image_url,

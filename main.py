@@ -71,7 +71,7 @@ async def main():
 
     # view：記錄瀏覽
     view_parser = subparsers.add_parser("view", help="記錄瀏覽某物件")
-    view_parser.add_argument("property_id", help="物件 ID")
+    view_parser.add_argument("property_id", help="591 物件 ID")
 
     args = parser.parse_args()
 

@@ -1,6 +1,6 @@
-# 8591 房源推薦系統
+# 591 房源推薦系統
 
-每天自動爬取 8591 房源，根據你的瀏覽紀錄推薦相似物件，透過 Line 通知。
+每天自動爬取 591 房源，根據你的瀏覽紀錄推薦相似物件，透過 Line 通知。
 
 ## 安裝
 
@@ -28,18 +28,18 @@ python main.py run
 # 啟動排程器（每天早上 9:00 自動執行）
 python main.py start
 
-# 記錄你看過的物件（輸入 8591 物件頁面的數字 ID）
+# 記錄你看過的物件（輸入 591 物件頁面的數字 ID）
 python main.py view 12345678
 ```
 
 ## 專案結構
 
 ```
-8591_recommender/
+591_recommender/
 ├── config/settings.py          # 環境變數與設定
 ├── scraper/
 │   ├── browser.py              # Playwright 瀏覽器管理
-│   └── property_scraper.py     # 8591 爬蟲
+│   └── property_scraper.py     # 591 爬蟲
 ├── database/
 │   ├── models.py               # SQLAlchemy 資料模型
 │   └── db.py                   # DB 連線與 session

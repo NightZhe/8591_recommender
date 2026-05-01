@@ -10,7 +10,7 @@ class Property(Base):
     __tablename__ = "properties"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    property_id = Column(String(50), unique=True, nullable=False)  # 8591 的物件ID
+    property_id = Column(String(50), unique=True, nullable=False)  # 591 的物件ID
     title = Column(String(200))
     url = Column(String(500))
     kind = Column(String(10))           # 出租/出售

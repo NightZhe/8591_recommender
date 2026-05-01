@@ -1,5 +1,6 @@
 from playwright.async_api import async_playwright, Browser, BrowserContext
 import asyncio
+import os
 
 
 class BrowserManager:
@@ -9,10 +10,16 @@ class BrowserManager:
 
     async def start(self):
         self._playwright = await async_playwright().start()
-        self._browser = await self._playwright.chromium.launch(
-            headless=True,
-            args=["--no-sandbox", "--disable-dev-shm-usage"],
-        )
+        launch_kwargs = {
+            "headless": True,
+            "args": ["--no-sandbox", "--disable-dev-shm-usage", "--ignore-certificate-errors"],
+        }
+        # Allow overriding the chromium executable (e.g. when browser build version
+        # doesn't match the pip package, set PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH).
+        exe = os.environ.get("PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH")
+        if exe:
+            launch_kwargs["executable_path"] = exe
+        self._browser = await self._playwright.chromium.launch(**launch_kwargs)
 
     async def stop(self):
         if self._browser:
