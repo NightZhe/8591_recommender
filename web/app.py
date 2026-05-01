@@ -120,6 +120,19 @@ def api_history_detail(run_id: int):
         })
 
 
+@app.route("/api/last-error")
+def api_last_error():
+    """最近一次失敗的完整錯誤訊息"""
+    with get_db() as db:
+        run = (db.query(ScrapeRun)
+               .filter(ScrapeRun.status == "failed")
+               .order_by(ScrapeRun.run_at.desc())
+               .first())
+        if not run:
+            return jsonify({"error": None})
+        return jsonify(_run_dict(run))
+
+
 @app.route("/api/all")
 def api_all():
     """全部物件（不分 run，用於開發測試）"""

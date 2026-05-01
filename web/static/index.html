@@ -377,6 +377,7 @@ async function loadHistory() {
           <div class="run-stats">${r.search_areas} ｜ 共 ${r.total_found} 筆</div>
           ${newPill}
           <span class="run-badge ${badgeClass}">${r.status === 'success' ? '✓ 成功' : r.status === 'failed' ? '✗ 失敗' : '⟳ 執行中'}</span>
+          ${r.status === 'failed' && r.error_msg ? `<div style="font-size:0.75rem;color:#dc2626;margin-top:4px;word-break:break-all;">⚠ ${r.error_msg}</div>` : ''}
         </div>`;
     }).join('');
   } catch (e) {
