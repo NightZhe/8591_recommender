@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>591 房產搜尋</title>
+  <style>
+    :root {
+      --primary:  #e05c1a;
+      --bg:       #f5f5f5;
+      --card-bg:  #ffffff;
+      --border:   #e0e0e0;
+      --text:     #333;
+      --muted:    #888;
+      --success:  #16a34a;
+      --fail:     #dc2626;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ── header ── */
+    header {
+      background: var(--primary); color: #fff;
+      padding: 14px 24px; display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.18);
+    }
+    header h1 { font-size: 1.2rem; font-weight: 700; }
+
+    /* ── search panel ── */
+    .search-panel {
+      background: #fff;
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px;
+    }
+    .search-group { display: flex; flex-direction: column; gap: 5px; }
+    .search-label { font-size: .75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+
+    .seg { display: flex; border: 1.5px solid var(--border); border-radius: 7px; overflow: hidden; }
+    .seg button {
+      padding: 7px 16px; font-size: .88rem; font-weight: 500;
+      border: none; background: none; cursor: pointer; color: var(--muted);
+      transition: all .15s; white-space: nowrap;
+    }
+    .seg button + button { border-left: 1.5px solid var(--border); }
+    .seg button.active { background: var(--primary); color: #fff; font-weight: 700; }
+    .seg button:disabled { opacity: .4; cursor: not-allowed; }
+
+    .price-row { display: flex; align-items: center; gap: 6px; }
+    .price-row input {
+      width: 110px; padding: 7px 10px; border: 1.5px solid var(--border);
+      border-radius: 7px; font-size: .9rem; outline: none;
+      transition: border-color .15s;
+    }
+    .price-row input:focus { border-color: var(--primary); }
+    .price-unit { font-size: .8rem; color: var(--muted); white-space: nowrap; }
+    .price-sep { color: var(--muted); }
+
+    .search-btn {
+      padding: 8px 22px; background: var(--primary); color: #fff;
+      border: none; border-radius: 7px; font-size: .92rem; font-weight: 700;
+      cursor: pointer; transition: background .15s; white-space: nowrap;
+      align-self: flex-end;
+    }
+    .search-btn:hover { background: #c94e15; }
+    .search-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+    /* ── tabs ── */
+    .tabs {
+      display: flex; background: #fff;
+      border-bottom: 2px solid var(--border); padding: 0 24px;
+    }
+    .tab-btn {
+      padding: 13px 20px; font-size: .93rem; font-weight: 600;
+      cursor: pointer; background: none; border: none;
+      border-bottom: 3px solid transparent; color: var(--muted); transition: all .2s;
+    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+
+    /* ── content ── */
+    .tab-panel { display: none; padding: 20px 24px; }
+    .tab-panel.active { display: block; }
+
+    /* ── status bar ── */
+    .status-bar {
+      background: #fff; border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px 16px; margin-bottom: 16px;
+      font-size: .85rem; color: var(--muted);
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); display: inline-block; }
+    .dot.fail { background: var(--fail); }
+    .dot.running { background: #f59e0b; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+
+    /* ── grid ── */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+    .card {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden; transition: box-shadow .2s;
+    }
+    .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12); }
+    .card-img { width: 100%; height: 155px; object-fit: cover; background: #eee; display: block; }
+    .card-img-placeholder {
+      width: 100%; height: 155px;
+      background: linear-gradient(135deg, #e8e8e8, #d0d0d0);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.2rem; color: #bbb;
+    }
+    .card-body { padding: 12px; }
+    .card-title {
+      font-size: .9rem; font-weight: 600; line-height: 1.4; margin-bottom: 5px;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .card-title a { color: var(--text); text-decoration: none; }
+    .card-title a:hover { color: var(--primary); }
+    .card-price { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+    .card-meta { font-size: .78rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 5px; }
+    .card-meta .tag { background: #f0f0f0; border-radius: 4px; padding: 2px 6px; }
+    .card-meta .tag.district { background: #e8f4fd; color: #1d6fa4; }
+    .card-addr { font-size: .77rem; color: var(--muted); margin-top: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .score-bar-wrap { margin-top: 7px; font-size: .79rem; color: #888; display: flex; align-items: center; gap: 6px; }
+    .score-bar { display: inline-block; width: 50px; height: 5px; background: #eee; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+    .score-fill { height: 100%; background: var(--primary); border-radius: 3px; }
+
+    /* ── history ── */
+    .history-list { display: flex; flex-direction: column; gap: 10px; }
+    .run-row {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 13px 16px;
+      cursor: pointer; transition: box-shadow .2s;
+    }
+    .run-row:hover { box-shadow: 0 2px 10px rgba(0,0,0,.1); }
+    .run-row.selected { border-color: var(--primary); }
+    .run-row-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .run-time { font-size: .88rem; font-weight: 600; min-width: 120px; }
+    .run-stats { font-size: .82rem; color: var(--muted); flex: 1; }
+    .run-badge { font-size: .74rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+    .run-badge.success { background: #d1fae5; color: var(--success); }
+    .run-badge.failed  { background: #fee2e2; color: var(--fail); }
+    .run-badge.running { background: #fef3c7; color: #b45309; }
+    .run-error { font-size: .74rem; color: var(--fail); margin-top: 5px; word-break: break-all; }
+
+    .history-detail { margin-top: 20px; }
+    .history-detail h3 { font-size: 1rem; font-weight: 700; margin-bottom: 12px; }
+
+    /* ── misc ── */
+    .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .spinner {
+      width: 34px; height: 34px; border: 4px solid #eee; border-top-color: var(--primary);
+      border-radius: 50%; animation: spin .8s linear infinite; margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .refresh-btn {
+      background: none; border: 1px solid var(--border); border-radius: 6px;
+      padding: 4px 11px; cursor: pointer; font-size: .8rem; color: var(--muted);
+      margin-left: auto; transition: all .15s;
+    }
+    .refresh-btn:hover { background: var(--bg); color: var(--text); }
+
+    /* ── AI panel ── */
+    .ai-panel {
+      background: #faf5ff;
+      border-bottom: 1px solid #e9d5ff;
+      padding: 12px 24px;
+      display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px;
+    }
+    .ai-input-row { display: flex; flex: 1; min-width: 260px; gap: 10px; align-items: flex-end; }
+    .ai-textarea {
+      flex: 1; padding: 9px 12px;
+      border: 1.5px solid #d8b4fe; border-radius: 7px;
+      font-size: .88rem; resize: none; height: 42px; line-height: 1.4;
+      outline: none; transition: border-color .15s; font-family: inherit;
+      overflow: hidden;
+    }
+    .ai-textarea:focus { border-color: #7c3aed; }
+    .ai-parse-btn {
+      padding: 8px 16px; background: #7c3aed; color: #fff;
+      border: none; border-radius: 7px; font-size: .88rem; font-weight: 700;
+      cursor: pointer; transition: background .15s; white-space: nowrap; flex-shrink: 0;
+    }
+    .ai-parse-btn:hover { background: #6d28d9; }
+    .ai-parse-btn:disabled { opacity: .6; cursor: not-allowed; }
+    .ai-result {
+      width: 100%; font-size: .81rem; color: #7c3aed; min-height: 16px; padding-top: 2px;
+    }
+    .ai-result.error { color: var(--fail); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🏠 591 房產搜尋</h1>
+  </div>
+</header>
+
+<!-- ══ AI 自然語言搜尋 ══ -->
+<div class="ai-panel">
+  <div class="ai-input-row">
+    <div class="search-group" style="flex:1">
+      <span class="search-label" style="color:#7c3aed;letter-spacing:.04em">✨ AI 自然語言搜尋</span>
+      <textarea class="ai-textarea" id="aiInput"
+        placeholder="用自己的話描述需求，例如：「找台北租屋，月租兩萬到三萬」或「想買台北住宅，預算一千到一千五百萬」"
+      ></textarea>
+    </div>
+    <button class="ai-parse-btn" id="aiBtn" onclick="aiParse()">✨ AI 解析</button>
+  </div>
+  <div class="ai-result" id="aiResult"></div>
+</div>
+
+<!-- ══ 搜尋列 ══ -->
+<div class="search-panel">
+
+  <!-- 交易類型 -->
+  <div class="search-group">
+    <span class="search-label">交易類型</span>
+    <div class="seg" id="segMode">
+      <button class="active" onclick="selectMode('rent', this)">租屋</button>
+      <button onclick="selectMode('buy', this)">買屋</button>
+    </div>
+  </div>
+
+  <!-- 物件類型 -->
+  <div class="search-group">
+    <span class="search-label">物件類型</span>
+    <div class="seg" id="segProp">
+      <button class="active" onclick="selectProp('residential', this)">住宅</button>
+      <button id="btnCommercial" onclick="selectProp('commercial', this)">店面／商辦</button>
+    </div>
+  </div>
+
+  <!-- 金額範圍 -->
+  <div class="search-group">
+    <span class="search-label" id="priceLabel">租金（元 / 月）</span>
+    <div class="price-row">
+      <input type="number" id="priceMin" placeholder="最低" min="0" step="1000" value="20000" />
+      <span class="price-sep">～</span>
+      <input type="number" id="priceMax" placeholder="最高" min="0" step="1000" value="32000" />
+      <span class="price-unit" id="priceUnit">元/月</span>
+    </div>
+  </div>
+
+  <button class="search-btn" id="searchBtn" onclick="triggerSearch()">🔍 搜尋</button>
+</div>
+
+<!-- ══ tabs ══ -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('latest', event)">🏠 最新物件</button>
+  <button class="tab-btn" onclick="showTab('history', event)">📅 歷史紀錄</button>
+</div>
+
+<!-- ══ 最新物件 tab ══ -->
+<div class="tab-panel active" id="tab-latest">
+  <div class="status-bar" id="latestStatus">
+    <div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0"></div> 載入中…
+  </div>
+  <div class="grid" id="latestGrid"></div>
+</div>
+
+<!-- ══ 歷史紀錄 tab ══ -->
+<div class="tab-panel" id="tab-history">
+  <div class="status-bar" style="justify-content:space-between">
+    <span>每天 09:00 自動更新</span>
+    <button class="refresh-btn" onclick="loadHistory()">↻ 重新整理</button>
+  </div>
+  <div class="history-list" id="historyList"></div>
+  <div class="history-detail" id="historyDetail" style="display:none">
+    <h3 id="historyDetailTitle"></h3>
+    <div class="grid" id="historyGrid"></div>
+  </div>
+</div>
+
+<script>
+// ── 狀態 ──────────────────────────────────────
+let currentMode = 'rent';       // 'rent' | 'buy'
+let currentProp = 'residential'; // 'residential' | 'commercial'
+
+// ── 搜尋列邏輯 ────────────────────────────────
+function selectMode(mode, btn) {
+  currentMode = mode;
+  btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  const isRent = mode === 'rent';
+  const commercialBtn = document.getElementById('btnCommercial');
+
+  if (isRent) {
+    // 租屋只有住宅，店面不可選
+    commercialBtn.disabled = true;
+    selectProp('residential', document.querySelector('#segProp button'));
+    document.querySelector('#segProp button').classList.add('active');
+    commercialBtn.classList.remove('active');
+  } else {
+    commercialBtn.disabled = false;
+  }
+
+  updatePriceLabel();
+}
+
+function selectProp(prop, btn) {
+  if (btn.disabled) return;
+  currentProp = prop;
+  btn.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function updatePriceLabel() {
+  const isRent = currentMode === 'rent';
+  document.getElementById('priceLabel').textContent = isRent ? '租金（元 / 月）' : '售價（萬元）';
+  document.getElementById('priceUnit').textContent  = isRent ? '元/月' : '萬';
+
+  // 重設預設值
+  if (isRent) {
+    document.getElementById('priceMin').value = 20000;
+    document.getElementById('priceMax').value = 32000;
+    document.getElementById('priceMin').step  = 1000;
+    document.getElementById('priceMax').step  = 1000;
+  } else {
+    document.getElementById('priceMin').value = currentProp === 'commercial' ? 500 : 1000;
+    document.getElementById('priceMax').value = currentProp === 'commercial' ? 3000 : 5000;
+    document.getElementById('priceMin').step  = 100;
+    document.getElementById('priceMax').step  = 100;
+  }
+}
+
+// ── 物件卡片 ──────────────────────────────────
+function makeCard(p, mode) {
+  const isRent = (mode || currentMode) === 'rent';
+  const price = p.price
+    ? (isRent ? `${p.price.toLocaleString()} 元/月` : `${p.price.toLocaleString()} 萬`)
+    : '詢價';
+  const unitPrice = (!isRent && p.unit_price) ? `<span style="font-size:.8rem;color:var(--muted);font-weight:400;"> （${p.unit_price} 萬/坪）</span>` : '';
+  const area  = p.area  ? `${p.area} 坪` : '';
+  const floor = p.floor ? `${p.floor}${isRent ? '樓' : ''}` : '';
+  const rooms = isRent && (p.rooms != null) ? `${p.rooms}房${p.living_rooms||0}廳${p.bathrooms||0}衛` : '';
+  const icon  = isRent ? '🏠' : (p.house_type === '商業不動產' ? '🏪' : '🏡');
+  const img   = p.image_url
+    ? `<img class="card-img" src="${p.image_url}" alt="" loading="lazy" onerror="this.style.display='none'">`
+    : `<div class="card-img-placeholder">${icon}</div>`;
+
+  const scorePct = (p.score != null) ? Math.round(p.score * 100) : null;
+  const scoreHtml = scorePct != null
+    ? `<div class="score-bar-wrap">
+         <span class="score-bar"><span class="score-fill" style="width:${scorePct}%"></span></span>
+         符合度 ${scorePct}%　✨ ${p.reason || ''}
+       </div>`
+    : (p.reason ? `<div class="score-bar-wrap">✨ ${p.reason}</div>` : '');
+
+  return `
+  <div class="card">
+    <a href="${p.url}" target="_blank" rel="noopener">${img}</a>
+    <div class="card-body">
+      <div class="card-title"><a href="${p.url}" target="_blank" rel="noopener">${p.title || '（無標題）'}</a></div>
+      <div class="card-price">${price}${unitPrice}</div>
+      <div class="card-meta">
+        ${p.district   ? `<span class="tag district">${p.district}</span>` : ''}
+        ${area         ? `<span class="tag">${area}</span>` : ''}
+        ${floor        ? `<span class="tag">${floor}</span>` : ''}
+        ${rooms        ? `<span class="tag">${rooms}</span>` : ''}
+        ${p.property_type ? `<span class="tag">${p.property_type}</span>` : ''}
+        ${p.house_type && !isRent ? `<span class="tag">${p.house_type}</span>` : ''}
+      </div>
+      ${p.address ? `<div class="card-addr">📍 ${p.address}</div>` : ''}
+      ${scoreHtml}
+    </div>
+  </div>`;
+}
+
+// ── tab 切換 ──────────────────────────────────
+function showTab(name, e) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  e.currentTarget.classList.add('active');
+  if (name === 'history') loadHistory();
+}
+
+// ── 最新物件 ──────────────────────────────────
+async function loadLatest() {
+  const status = document.getElementById('latestStatus');
+  const grid   = document.getElementById('latestGrid');
+  status.innerHTML = `<div class="spinner" style="width:16px;height:16px;border-width:2px;margin:0"></div> 載入中…`;
+  grid.innerHTML = '';
+
+  try {
+    const res  = await fetch('/api/latest');
+    const data = await res.json();
+
+    if (!data.run) {
+      status.innerHTML = '<span class="dot fail"></span> 尚無資料，請點搜尋按鈕執行第一次爬取';
+      grid.innerHTML = `<div class="empty">點上方「🔍 搜尋」按鈕開始</div>`;
+      return;
+    }
+
+    const r = data.run;
+    const dot = r.status === 'success' ? 'dot' : r.status === 'failed' ? 'dot fail' : 'dot running';
+    status.innerHTML = `
+      <span class="${dot}"></span>
+      最後更新：<strong>${r.run_at}</strong> ｜ ${r.search_areas} ｜ 共 ${r.total_found} 筆
+      <button class="refresh-btn" onclick="loadLatest()">↻ 重新整理</button>`;
+
+    if (!data.properties.length) {
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1">此次無符合條件的物件</div>`;
+      return;
+    }
+    grid.innerHTML = data.properties.map(p => makeCard(p, data.mode)).join('');
+  } catch (e) {
+    status.innerHTML = `<span class="dot fail"></span> 載入失敗：${e.message}`;
+  }
+}
+
+// ── 歷史紀錄 ──────────────────────────────────
+let selectedRunId = null;
+
+async function loadHistory() {
+  const list = document.getElementById('historyList');
+  list.innerHTML = `<div class="empty"><div class="spinner"></div>載入中…</div>`;
+  document.getElementById('historyDetail').style.display = 'none';
+
+  try {
+    const res  = await fetch('/api/history');
+    const runs = await res.json();
+
+    if (!runs.length) { list.innerHTML = `<div class="empty">尚無歷史紀錄</div>`; return; }
+
+    list.innerHTML = runs.map(r => {
+      const badgeClass = r.status === 'success' ? 'success' : r.status === 'failed' ? 'failed' : 'running';
+      const badgeText  = r.status === 'success' ? '✓ 成功' : r.status === 'failed' ? '✗ 失敗' : '⟳ 執行中';
+      return `
+        <div class="run-row ${r.id === selectedRunId ? 'selected' : ''}" onclick="loadHistoryDetail(${r.id}, '${r.run_at}', event)">
+          <div class="run-row-top">
+            <span class="run-time">${r.run_at}</span>
+            <span class="run-stats">${r.search_areas} ｜ 共 ${r.total_found} 筆</span>
+            <span class="run-badge ${badgeClass}">${badgeText}</span>
+          </div>
+          ${r.status === 'failed' && r.error_msg ? `<div class="run-error">⚠ ${r.error_msg}</div>` : ''}
+        </div>`;
+    }).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="empty">載入失敗：${e.message}</div>`;
+  }
+}
+
+async function loadHistoryDetail(runId, runAt, e) {
+  selectedRunId = runId;
+  document.querySelectorAll('.run-row').forEach(el => el.classList.remove('selected'));
+  e.currentTarget.classList.add('selected');
+
+  const detail = document.getElementById('historyDetail');
+  const grid   = document.getElementById('historyGrid');
+  document.getElementById('historyDetailTitle').textContent = `📋 ${runAt} 的搜尋結果`;
+  detail.style.display = 'block';
+  grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="spinner"></div>載入中…</div>`;
+
+  try {
+    const res  = await fetch(`/api/history/${runId}`);
+    const data = await res.json();
+    if (!data.properties || !data.properties.length) {
+      grid.innerHTML = `<div class="empty" style="grid-column:1/-1">此次無物件記錄</div>`;
+      return;
+    }
+    grid.innerHTML = data.properties.map(p => makeCard(p, data.mode)).join('');
+  } catch (e) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1">載入失敗：${e.message}</div>`;
+  }
+  detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── 觸發搜尋 ──────────────────────────────────
+async function triggerSearch() {
+  const btn = document.getElementById('searchBtn');
+  btn.disabled = true;
+  btn.textContent = '⟳ 搜尋中…';
+
+  const priceMin = parseInt(document.getElementById('priceMin').value) || 0;
+  const priceMax = parseInt(document.getElementById('priceMax').value) || 0;
+
+  // mode: rent / buy_residential / buy_commercial
+  let mode = 'rent';
+  if (currentMode === 'buy') {
+    mode = currentProp === 'commercial' ? 'buy_commercial' : 'buy_residential';
+  }
+
+  try {
+    const res = await fetch('/api/trigger-scrape', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode, price_min: priceMin, price_max: priceMax }),
+    });
+    if (res.status === 409) {
+      btn.textContent = '已在執行中…';
+    } else if (res.ok) {
+      btn.textContent = '✓ 爬取中，請稍候';
+      setTimeout(loadLatest, 8000);
+    } else {
+      btn.textContent = '✗ 發生錯誤';
+    }
+  } catch (e) {
+    btn.textContent = '✗ 連線失敗';
+  }
+
+  setTimeout(() => { btn.disabled = false; btn.textContent = '🔍 搜尋'; }, 5000);
+}
+
+// ── AI 解析 ──────────────────────────────────
+async function aiParse() {
+  const input = document.getElementById('aiInput').value.trim();
+  if (!input) return;
+
+  const btn    = document.getElementById('aiBtn');
+  const result = document.getElementById('aiResult');
+  btn.disabled = true;
+  btn.textContent = '⟳ 解析中…';
+  result.textContent = '';
+  result.className = 'ai-result';
+
+  try {
+    const res  = await fetch('/api/ai-parse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: input }),
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      result.textContent = '⚠ ' + data.error;
+      result.className = 'ai-result error';
+      return;
+    }
+
+    // Apply mode to toggles
+    const modeMap = { rent: '租屋', buy_residential: '買屋住宅', buy_commercial: '買屋商辦' };
+    if (data.mode === 'rent') {
+      currentMode = 'rent'; currentProp = 'residential';
+      const modeButtons = document.querySelectorAll('#segMode button');
+      modeButtons.forEach(b => b.classList.remove('active'));
+      modeButtons[0].classList.add('active');
+      document.getElementById('btnCommercial').disabled = true;
+      const propButtons = document.querySelectorAll('#segProp button');
+      propButtons.forEach(b => b.classList.remove('active'));
+      propButtons[0].classList.add('active');
+    } else if (data.mode === 'buy_residential') {
+      currentMode = 'buy'; currentProp = 'residential';
+      const modeButtons = document.querySelectorAll('#segMode button');
+      modeButtons.forEach(b => b.classList.remove('active'));
+      modeButtons[1].classList.add('active');
+      document.getElementById('btnCommercial').disabled = false;
+      const propButtons = document.querySelectorAll('#segProp button');
+      propButtons.forEach(b => b.classList.remove('active'));
+      propButtons[0].classList.add('active');
+    } else if (data.mode === 'buy_commercial') {
+      currentMode = 'buy'; currentProp = 'commercial';
+      const modeButtons = document.querySelectorAll('#segMode button');
+      modeButtons.forEach(b => b.classList.remove('active'));
+      modeButtons[1].classList.add('active');
+      const commercialBtn = document.getElementById('btnCommercial');
+      commercialBtn.disabled = false;
+      const propButtons = document.querySelectorAll('#segProp button');
+      propButtons.forEach(b => b.classList.remove('active'));
+      commercialBtn.classList.add('active');
+    }
+
+    updatePriceLabel();
+    if (data.price_min) document.getElementById('priceMin').value = data.price_min;
+    if (data.price_max) document.getElementById('priceMax').value = data.price_max;
+
+    const modeName  = modeMap[data.mode] || data.mode;
+    const priceText = (data.price_min || data.price_max)
+      ? `，價格 ${(data.price_min || 0).toLocaleString()}～${data.price_max ? data.price_max.toLocaleString() : '不限'}`
+      : '';
+    result.textContent = `✓ 已套用：${modeName}${priceText}`;
+  } catch (e) {
+    result.textContent = '⚠ 連線失敗：' + e.message;
+    result.className = 'ai-result error';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ AI 解析';
+  }
+}
+
+// ── 初始化 ────────────────────────────────────
+loadLatest();
+setInterval(() => {
+  if (document.getElementById('tab-latest').classList.contains('active')) loadLatest();
+}, 5 * 60 * 1000);
+</script>
+</body>
+</html>
