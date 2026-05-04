@@ -6,12 +6,6 @@ from flask import Flask, jsonify, send_from_directory, request
 from datetime import datetime, timezone, timedelta
 import asyncio
 import threading
-import json
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
 from database.db import get_db
 from database.models import Property, Recommendation, ScrapeRun
 
@@ -228,44 +222,6 @@ def trigger_scrape():
     t = threading.Thread(target=_run, daemon=True)
     t.start()
     return jsonify({"status": "started", "mode": mode}), 202
-
-
-_AI_SYSTEM = """你是一個台灣房產搜尋助手。從用戶的自然語言輸入中提取搜尋參數，**只**回傳以下 JSON 格式，不要加任何說明：
-
-{"mode": "rent"|"buy_residential"|"buy_commercial", "price_min": 整數, "price_max": 整數}
-
-規則：
-- mode: 提到「租」「租屋」→ "rent"；提到「買」「購買」「住宅」→ "buy_residential"；提到「店面」「商辦」「商業」→ "buy_commercial"；預設 "rent"
-- price_min / price_max: 租屋單位為元/月（「兩萬」→ 20000）；買屋單位為萬元（「一千萬」→ 1000）；無法判斷則填 0
-- 只填能確定的欄位，無法判斷的填 0"""
-
-
-@app.route("/api/ai-parse", methods=["POST"])
-def ai_parse():
-    body = request.get_json(silent=True) or {}
-    text = body.get("text", "").strip()
-    if not text:
-        return jsonify({"error": "empty input"}), 400
-
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
-    if not api_key:
-        return jsonify({"error": "ANTHROPIC_API_KEY 未設定，請聯絡管理員"}), 503
-
-    try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=api_key)
-        response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=256,
-            system=_AI_SYSTEM,
-            messages=[{"role": "user", "content": text}],
-        )
-        result = json.loads(response.content[0].text)
-        return jsonify(result)
-    except json.JSONDecodeError:
-        return jsonify({"error": "AI 回傳格式錯誤，請重試"}), 500
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
 def run_web(host: str = "0.0.0.0", port: int = 5591, debug: bool = False):

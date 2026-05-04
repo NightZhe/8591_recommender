@@ -159,34 +159,6 @@
       margin-left: auto; transition: all .15s;
     }
     .refresh-btn:hover { background: var(--bg); color: var(--text); }
-
-    /* ── AI panel ── */
-    .ai-panel {
-      background: #faf5ff;
-      border-bottom: 1px solid #e9d5ff;
-      padding: 12px 24px;
-      display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px;
-    }
-    .ai-input-row { display: flex; flex: 1; min-width: 260px; gap: 10px; align-items: flex-end; }
-    .ai-textarea {
-      flex: 1; padding: 9px 12px;
-      border: 1.5px solid #d8b4fe; border-radius: 7px;
-      font-size: .88rem; resize: none; height: 42px; line-height: 1.4;
-      outline: none; transition: border-color .15s; font-family: inherit;
-      overflow: hidden;
-    }
-    .ai-textarea:focus { border-color: #7c3aed; }
-    .ai-parse-btn {
-      padding: 8px 16px; background: #7c3aed; color: #fff;
-      border: none; border-radius: 7px; font-size: .88rem; font-weight: 700;
-      cursor: pointer; transition: background .15s; white-space: nowrap; flex-shrink: 0;
-    }
-    .ai-parse-btn:hover { background: #6d28d9; }
-    .ai-parse-btn:disabled { opacity: .6; cursor: not-allowed; }
-    .ai-result {
-      width: 100%; font-size: .81rem; color: #7c3aed; min-height: 16px; padding-top: 2px;
-    }
-    .ai-result.error { color: var(--fail); }
   </style>
 </head>
 <body>
@@ -196,20 +168,6 @@
     <h1>🏠 591 房產搜尋</h1>
   </div>
 </header>
-
-<!-- ══ AI 自然語言搜尋 ══ -->
-<div class="ai-panel">
-  <div class="ai-input-row">
-    <div class="search-group" style="flex:1">
-      <span class="search-label" style="color:#7c3aed;letter-spacing:.04em">✨ AI 自然語言搜尋</span>
-      <textarea class="ai-textarea" id="aiInput"
-        placeholder="用自己的話描述需求，例如：「找台北租屋，月租兩萬到三萬」或「想買台北住宅，預算一千到一千五百萬」"
-      ></textarea>
-    </div>
-    <button class="ai-parse-btn" id="aiBtn" onclick="aiParse()">✨ AI 解析</button>
-  </div>
-  <div class="ai-result" id="aiResult"></div>
-</div>
 
 <!-- ══ 搜尋列 ══ -->
 <div class="search-panel">
@@ -503,82 +461,6 @@ async function triggerSearch() {
   }
 
   setTimeout(() => { btn.disabled = false; btn.textContent = '🔍 搜尋'; }, 5000);
-}
-
-// ── AI 解析 ──────────────────────────────────
-async function aiParse() {
-  const input = document.getElementById('aiInput').value.trim();
-  if (!input) return;
-
-  const btn    = document.getElementById('aiBtn');
-  const result = document.getElementById('aiResult');
-  btn.disabled = true;
-  btn.textContent = '⟳ 解析中…';
-  result.textContent = '';
-  result.className = 'ai-result';
-
-  try {
-    const res  = await fetch('/api/ai-parse', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: input }),
-    });
-    const data = await res.json();
-
-    if (data.error) {
-      result.textContent = '⚠ ' + data.error;
-      result.className = 'ai-result error';
-      return;
-    }
-
-    // Apply mode to toggles
-    const modeMap = { rent: '租屋', buy_residential: '買屋住宅', buy_commercial: '買屋商辦' };
-    if (data.mode === 'rent') {
-      currentMode = 'rent'; currentProp = 'residential';
-      const modeButtons = document.querySelectorAll('#segMode button');
-      modeButtons.forEach(b => b.classList.remove('active'));
-      modeButtons[0].classList.add('active');
-      document.getElementById('btnCommercial').disabled = true;
-      const propButtons = document.querySelectorAll('#segProp button');
-      propButtons.forEach(b => b.classList.remove('active'));
-      propButtons[0].classList.add('active');
-    } else if (data.mode === 'buy_residential') {
-      currentMode = 'buy'; currentProp = 'residential';
-      const modeButtons = document.querySelectorAll('#segMode button');
-      modeButtons.forEach(b => b.classList.remove('active'));
-      modeButtons[1].classList.add('active');
-      document.getElementById('btnCommercial').disabled = false;
-      const propButtons = document.querySelectorAll('#segProp button');
-      propButtons.forEach(b => b.classList.remove('active'));
-      propButtons[0].classList.add('active');
-    } else if (data.mode === 'buy_commercial') {
-      currentMode = 'buy'; currentProp = 'commercial';
-      const modeButtons = document.querySelectorAll('#segMode button');
-      modeButtons.forEach(b => b.classList.remove('active'));
-      modeButtons[1].classList.add('active');
-      const commercialBtn = document.getElementById('btnCommercial');
-      commercialBtn.disabled = false;
-      const propButtons = document.querySelectorAll('#segProp button');
-      propButtons.forEach(b => b.classList.remove('active'));
-      commercialBtn.classList.add('active');
-    }
-
-    updatePriceLabel();
-    if (data.price_min) document.getElementById('priceMin').value = data.price_min;
-    if (data.price_max) document.getElementById('priceMax').value = data.price_max;
-
-    const modeName  = modeMap[data.mode] || data.mode;
-    const priceText = (data.price_min || data.price_max)
-      ? `，價格 ${(data.price_min || 0).toLocaleString()}～${data.price_max ? data.price_max.toLocaleString() : '不限'}`
-      : '';
-    result.textContent = `✓ 已套用：${modeName}${priceText}`;
-  } catch (e) {
-    result.textContent = '⚠ 連線失敗：' + e.message;
-    result.className = 'ai-result error';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '✨ AI 解析';
-  }
 }
 
 // ── 初始化 ────────────────────────────────────
