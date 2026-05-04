@@ -8,6 +8,9 @@ import asyncio
 import threading
 import json
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from database.db import get_db
 from database.models import Property, Recommendation, ScrapeRun
