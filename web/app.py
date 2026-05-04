@@ -247,9 +247,10 @@ def ai_parse():
     if not text:
         return jsonify({"error": "empty input"}), 400
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:
-        return jsonify({"error": "ANTHROPIC_API_KEY 未設定，請聯絡管理員"}), 503
+        found = [k for k in os.environ if "ANTHROPIC" in k]
+        return jsonify({"error": "ANTHROPIC_API_KEY 未設定", "found_vars": found}), 503
 
     try:
         import anthropic
