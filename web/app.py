@@ -255,9 +255,9 @@ def ai_parse():
         import anthropic
         client = anthropic.Anthropic(api_key=api_key)
         response = client.messages.create(
-            model="claude-haiku-4-5",
+            model="claude-haiku-4-5-20251001",
             max_tokens=256,
-            system=[{"type": "text", "text": _AI_SYSTEM, "cache_control": {"type": "ephemeral"}}],
+            system=_AI_SYSTEM,
             messages=[{"role": "user", "content": text}],
         )
         result = json.loads(response.content[0].text)
